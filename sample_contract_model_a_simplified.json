@@ -1,0 +1,56 @@
+{
+  "success": true,
+  "clauses": [
+    {
+      "clause_id": 1,
+      "original_text": "The Company agrees to provide software development services as outlined in Exhibit A attached hereto. The Company shall have sole discretion in determining the methods, techniques, and procedures for performing the services.",
+      "simplified_text": "The company will build software for you as described in the attached document. They have the right to decide exactly how they do the work."
+    },
+    {
+      "clause_id": 2,
+      "original_text": "Client agrees to pay Company a fee of Rs. 5,00,000 (Five Lakhs) for the services. Payment shall be made within 7 days of invoice receipt. Late payments shall incur a penalty of 2% per day compounded daily until paid in full.",
+      "simplified_text": "You must pay the company 5,00,000 rupees within 7 days of receiving the bill. If you pay late, you will be charged a 2% interest fee every single day until the balance is paid."
+    },
+    {
+      "clause_id": 3,
+      "original_text": "This Agreement shall commence on the Effective Date and continue for 12 months. Company may terminate this Agreement at any time without cause or notice. Client must provide 90 days written notice and pay a termination fee equal to 50% of the remaining contract value.",
+      "simplified_text": "The contract lasts for one year. The company can cancel at any time for any reason without telling you. If you want to cancel, you must give 3 months' notice and pay half of the money still owed for the rest of the year."
+    },
+    {
+      "clause_id": 4,
+      "original_text": "All work product, inventions, and intellectual property created during this engagement shall be the sole and exclusive property of the Company, regardless of whether created using Client's resources or on Client's premises.",
+      "simplified_text": "Everything the company creates or invents while working for you belongs entirely to them, even if they used your equipment or worked at your office."
+    },
+    {
+      "clause_id": 5,
+      "original_text": "Under no circumstances shall Company be liable for any direct, indirect, incidental, special, or consequential damages exceeding Rs. 1,000. Client waives all rights to claims arising from Company's negligence or misconduct.",
+      "simplified_text": "The company will never pay you more than 1,000 rupees for any damages or mistakes. You agree not to sue them even if they are careless or behave badly."
+    },
+    {
+      "clause_id": 6,
+      "original_text": "Client shall maintain strict conﬁdentiality of all Company information indeﬁnitely. Company shall have no obligation to maintain conﬁdentiality of Client information.",
+      "simplified_text": "You must keep the company's secrets forever, but the company is allowed to share your private information with others."
+    },
+    {
+      "clause_id": 7,
+      "original_text": "Client shall indemnify, defend, and hold harmless Company from any and all claims, damages, losses, costs, and expenses (including attorney fees) arising from any cause whatsoever, including Company's own negligence.",
+      "simplified_text": "You agree to pay for the company's legal fees and any losses they face, even if the problem was caused by the company's own mistakes."
+    },
+    {
+      "clause_id": 8,
+      "original_text": "Any disputes shall be resolved through binding arbitration in a location of Company's choosing. Client waives the right to trial by jury and participation in class action lawsuits.",
+      "simplified_text": "If there is a legal disagreement, it will be settled by a private arbitrator in a place the company chooses. You give up your right to a jury trial or to join a group lawsuit."
+    },
+    {
+      "clause_id": 9,
+      "original_text": "Company reserves the right to modify any terms of this Agreement at any time without prior notice to Client. Continued use of services constitutes acceptance of modiﬁed terms.",
+      "simplified_text": "The company can change this contract whenever they want without telling you. If you keep using their services, it means you agree to the new rules."
+    },
+    {
+      "clause_id": 10,
+      "original_text": "Client agrees not to engage any other software development company or hire any developers for a period of 2 years following termination of this Agreement.",
+      "simplified_text": "You agree not to hire any other software companies or developers for two years after this contract ends."
+    }
+  ],
+  "error": null
+}

@@ -1,0 +1,70 @@
+{
+  "success": true,
+  "risks": [
+    {
+      "clause_id": 2,
+      "risk_type": "hidden fees or penalties",
+      "severity": "high",
+      "description": "A 2% daily compounded penalty equates to an astronomical annual interest rate (over 130,000%), which is usurious and likely legally unenforceable.",
+      "recommendation": "Negotiate a reasonable late fee, such as 1-1.5% per month, and ensure it is not compounded daily."
+    },
+    {
+      "clause_id": 3,
+      "risk_type": "unusual termination conditions",
+      "severity": "high",
+      "description": "The termination rights are extremely one-sided, allowing the Company to exit at will while forcing the Client to pay a massive 50% penalty and provide long notice.",
+      "recommendation": "Establish mutual termination for convenience with equal notice periods (e.g., 30 days) and remove the 50% termination fee."
+    },
+    {
+      "clause_id": 4,
+      "risk_type": "unfair",
+      "severity": "high",
+      "description": "In a service agreement, the Client typically owns the work product they paid for. This clause strips the Client of all IP rights even when using their own resources.",
+      "recommendation": "Amend to state that all work product and IP shall be assigned to the Client upon full payment of fees."
+    },
+    {
+      "clause_id": 5,
+      "risk_type": "excessive liability limitations",
+      "severity": "high",
+      "description": "The liability cap of Rs. 1,000 is nominal compared to the contract value, and the waiver of claims for misconduct or negligence is often legally void as a matter of public policy.",
+      "recommendation": "Increase the liability cap to at least the total contract value and remove the waiver for gross negligence or intentional misconduct."
+    },
+    {
+      "clause_id": 6,
+      "risk_type": "unfair",
+      "severity": "high",
+      "description": "Confidentiality obligations are non-mutual, leaving the Client's proprietary data unprotected while binding them indefinitely to the Company's secrets.",
+      "recommendation": "Make the confidentiality clause mutual and include a standard duration (e.g., 3-5 years post-termination)."
+    },
+    {
+      "clause_id": 7,
+      "risk_type": "legally unenforceable",
+      "severity": "high",
+      "description": "Requiring the Client to indemnify the Company for the Company's own negligence is highly irregular and often unenforceable in many jurisdictions.",
+      "recommendation": "Limit indemnity to third-party claims arising from the Client's breach of contract or negligence, and exclude the Company's own negligence."
+    },
+    {
+      "clause_id": 8,
+      "risk_type": "unfair",
+      "severity": "medium",
+      "description": "The Company has the sole right to choose the arbitration location, which could be used to make legal recourse prohibitively expensive for the Client.",
+      "recommendation": "Specify a neutral, mutually agreed-upon city for arbitration."
+    },
+    {
+      "clause_id": 9,
+      "risk_type": "ambiguous language",
+      "severity": "high",
+      "description": "The right to unilaterally modify the contract without notice makes the agreement 'illusory' and allows the Company to change pricing or terms at any time.",
+      "recommendation": "Require that all amendments must be in writing and signed by both parties."
+    },
+    {
+      "clause_id": 10,
+      "risk_type": "legally unenforceable",
+      "severity": "high",
+      "description": "A blanket ban on hiring any other software company or developer for 2 years is an unreasonable restraint of trade and likely void under most labor laws.",
+      "recommendation": "Remove this clause entirely or narrow it to a non-solicitation of the Company's specific employees assigned to the project."
+    }
+  ],
+  "summary": "This contract is extremely high-risk and heavily biased in favor of the Company. It contains several clauses that are likely legally unenforceable, including usurious late fees, waivers of liability for misconduct, and unreasonable restraints on trade. The lack of mutual confidentiality and the unilateral right to modify terms make this agreement predatory in its current form.",
+  "error": null
+}
