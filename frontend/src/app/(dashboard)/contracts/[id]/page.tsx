@@ -92,7 +92,7 @@ export default function ContractDetailPage() {
         </div>
 
         {/* Right Panel - AI Decoder */}
-        <div className="w-1/2 overflow-y-auto bg-gray-50">
+        <div className="w-1/2 overflow-hidden bg-gray-50">
           <DecoderPanel
             selectedClause={contract.getSelectedClause()}
             simplifiedText={contract.selectedClauseId
@@ -104,6 +104,9 @@ export default function ContractDetailPage() {
             selectedLanguage={contract.selectedLanguage}
             onLanguageChange={contract.setSelectedLanguage}
             riskSummary={contract.analysis.risk_summary}
+            contractId={contractId}
+            allClauses={contract.analysis.clauses}
+            allRisks={contract.analysis.risks}
           />
         </div>
       </div>

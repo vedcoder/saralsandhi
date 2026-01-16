@@ -4,8 +4,9 @@ from uuid import UUID
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas.contract import ContractAnalysisResponse, ContractListResponse
+from schemas.contract import ContractAnalysisResponse, ContractListResponse, ChatRequest, ChatResponse
 from services.contract_service import ContractService
+from services.chat_service import ChatService
 from core.database import get_db
 from core.deps import get_current_active_user
 from models.user import User
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 contract_service = ContractService()
+chat_service = ChatService()
 
 
 @router.post("/contracts/analyze", response_model=ContractAnalysisResponse)
@@ -95,3 +97,29 @@ async def delete_contract(
         raise HTTPException(status_code=404, detail="Contract not found")
 
     return {"message": "Contract deleted successfully"}
+
+
+@router.post("/contracts/{contract_id}/chat", response_model=ChatResponse)
+async def chat_with_contract(
+    contract_id: UUID,
+    chat_request: ChatRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Chat with AI about a specific contract."""
+    logger.info(f"💬 Chat request for contract: {contract_id} from user: {current_user.email}")
+
+    # First verify the contract exists and belongs to the user
+    contract = await contract_service.get_contract_by_id(contract_id, current_user.id, db)
+    if not contract:
+        logger.warning(f"❌ Contract not found: {contract_id}")
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    # Get chat response
+    response = await chat_service.chat(
+        contract=contract,
+        message=chat_request.message,
+        history=chat_request.history
+    )
+
+    return ChatResponse(response=response)

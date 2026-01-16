@@ -131,3 +131,30 @@ export async function deleteContract(contractId: string): Promise<{ message: str
 
   return handleResponse<{ message: string }>(response);
 }
+
+// Chat endpoint
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatResponse {
+  response: string;
+}
+
+export async function chatWithContract(
+  contractId: string,
+  message: string,
+  history: ChatMessage[]
+): Promise<ChatResponse> {
+  const response = await fetch(`${API_BASE}/contracts/${contractId}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ message, history }),
+  });
+
+  return handleResponse<ChatResponse>(response);
+}
