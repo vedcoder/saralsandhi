@@ -1,12 +1,34 @@
 from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
+from datetime import datetime
+from uuid import UUID
 
 
 class Language(str, Enum):
     ENGLISH = "english"
     HINDI = "hindi"
     BENGALI = "bengali"
+
+
+class DetectedLanguage(str, Enum):
+    ENGLISH = "english"
+    HINDI = "hindi"
+    BENGALI = "bengali"
+    ENGLISH_COMPLEX = "english_complex"
+
+
+class RiskScore(str, Enum):
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    SAFE = "safe"
+
+
+class ContractStatus(str, Enum):
+    PENDING_REVIEW = "pending_review"
+    REVIEWED = "reviewed"
+    ARCHIVED = "archived"
 
 
 class Clause(BaseModel):
@@ -36,3 +58,22 @@ class ContractAnalysisResponse(BaseModel):
     risks: list[Risk]
     risk_summary: str
     error: Optional[str] = None
+
+
+class ContractListItem(BaseModel):
+    id: UUID
+    filename: str
+    detected_language: DetectedLanguage
+    risk_score: RiskScore
+    status: ContractStatus
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ContractListResponse(BaseModel):
+    contracts: list[ContractListItem]
+    total: int
+    limit: int
+    offset: int

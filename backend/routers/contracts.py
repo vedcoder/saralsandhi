@@ -1,33 +1,37 @@
 import logging
-from fastapi import APIRouter, UploadFile, File, HTTPException
-import uuid
+from typing import Annotated, Optional
+from uuid import UUID
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas.contract import ContractAnalysisResponse
+from schemas.contract import ContractAnalysisResponse, ContractListResponse
 from services.contract_service import ContractService
+from core.database import get_db
+from core.deps import get_current_active_user
+from models.user import User
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 contract_service = ContractService()
 
-# In-memory storage for analyzed contracts
-analyzed_contracts: dict[str, ContractAnalysisResponse] = {}
-
 
 @router.post("/contracts/analyze", response_model=ContractAnalysisResponse)
-async def analyze_contract(file: UploadFile = File(...)):
+async def analyze_contract(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    file: UploadFile = File(...)
+):
     """Upload and analyze a PDF contract."""
-    logger.info(f"📄 Received file: {file.filename}")
+    logger.info(f"📄 Received file: {file.filename} from user: {current_user.email}")
 
     if not file.filename.endswith('.pdf'):
         logger.warning(f"❌ Invalid file type: {file.filename}")
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
-    contract_id = str(uuid.uuid4())
-    logger.info(f"🔄 Starting analysis for contract: {contract_id}")
+    logger.info(f"🔄 Starting analysis for user: {current_user.id}")
 
-    result = await contract_service.analyze(file, contract_id)
-    analyzed_contracts[contract_id] = result
+    result = await contract_service.analyze_and_save(file, current_user.id, db)
 
     if result.success:
         logger.info(f"✅ Analysis complete: {len(result.clauses)} clauses, {len(result.risks)} risks")
@@ -37,13 +41,57 @@ async def analyze_contract(file: UploadFile = File(...)):
     return result
 
 
-@router.get("/contracts/{contract_id}", response_model=ContractAnalysisResponse)
-async def get_contract(contract_id: str):
-    """Get previously analyzed contract by ID."""
-    logger.info(f"📥 Fetching contract: {contract_id}")
+@router.get("/contracts", response_model=ContractListResponse)
+async def list_contracts(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    search: Optional[str] = Query(None, description="Search by filename"),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0)
+):
+    """List all contracts for the current user."""
+    logger.info(f"📋 Listing contracts for user: {current_user.email}")
 
-    if contract_id not in analyzed_contracts:
+    return await contract_service.get_user_contracts(
+        user_id=current_user.id,
+        db=db,
+        search=search,
+        limit=limit,
+        offset=offset
+    )
+
+
+@router.get("/contracts/{contract_id}", response_model=ContractAnalysisResponse)
+async def get_contract(
+    contract_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Get previously analyzed contract by ID."""
+    logger.info(f"📥 Fetching contract: {contract_id} for user: {current_user.email}")
+
+    result = await contract_service.get_contract_by_id(contract_id, current_user.id, db)
+
+    if not result:
         logger.warning(f"❌ Contract not found: {contract_id}")
         raise HTTPException(status_code=404, detail="Contract not found")
 
-    return analyzed_contracts[contract_id]
+    return result
+
+
+@router.delete("/contracts/{contract_id}")
+async def delete_contract(
+    contract_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Delete a contract."""
+    logger.info(f"🗑️ Deleting contract: {contract_id} for user: {current_user.email}")
+
+    success = await contract_service.delete_contract(contract_id, current_user.id, db)
+
+    if not success:
+        logger.warning(f"❌ Contract not found: {contract_id}")
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    return {"message": "Contract deleted successfully"}
