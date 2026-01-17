@@ -1,4 +1,4 @@
-import { ContractAnalysis, ContractListResponse } from '@/types/contract';
+import { ContractAnalysis, ContractListResponse, ContractListItem, ContractParty, ContractApprovalStatus, AuditTrailResponse, ContractCategory } from '@/types/contract';
 import { User, LoginCredentials, RegisterData, AuthToken, UserUpdate, PasswordChange } from '@/types/user';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -157,4 +157,93 @@ export async function chatWithContract(
   });
 
   return handleResponse<ChatResponse>(response);
+}
+
+// Party management endpoints
+export async function addSecondParty(contractId: string, email: string): Promise<ContractParty> {
+  const response = await fetch(`${API_BASE}/contracts/${contractId}/parties`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  return handleResponse<ContractParty>(response);
+}
+
+export async function getContractParties(contractId: string): Promise<ContractApprovalStatus> {
+  const response = await fetch(`${API_BASE}/contracts/${contractId}/parties`, {
+    headers: getAuthHeaders(),
+  });
+
+  return handleResponse<ContractApprovalStatus>(response);
+}
+
+export async function approveContract(contractId: string, approved: boolean): Promise<ContractApprovalStatus> {
+  const response = await fetch(`${API_BASE}/contracts/${contractId}/approve`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify({ approved }),
+  });
+
+  return handleResponse<ContractApprovalStatus>(response);
+}
+
+export async function removeSecondParty(contractId: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE}/contracts/${contractId}/parties/second`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  return handleResponse<{ message: string }>(response);
+}
+
+// Audit trail endpoints
+export async function getAuditTrail(contractId: string): Promise<AuditTrailResponse> {
+  const response = await fetch(`${API_BASE}/contracts/${contractId}/audit-trail`, {
+    headers: getAuthHeaders(),
+  });
+
+  return handleResponse<AuditTrailResponse>(response);
+}
+
+export async function logTranslationViewed(contractId: string, language: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE}/contracts/${contractId}/translation-viewed?language=${language}`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+
+  return handleResponse<{ message: string }>(response);
+}
+
+// Contract details update
+export async function updateContractDetails(
+  contractId: string,
+  category?: ContractCategory,
+  expiryDate?: string
+): Promise<ContractListItem> {
+  const params = new URLSearchParams();
+  if (category) params.append('category', category);
+  if (expiryDate) params.append('expiry_date', expiryDate);
+
+  const response = await fetch(`${API_BASE}/contracts/${contractId}?${params}`, {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+
+  return handleResponse<ContractListItem>(response);
+}
+
+// Expiring contracts
+export async function getExpiringContracts(days: number = 30): Promise<ContractListItem[]> {
+  const response = await fetch(`${API_BASE}/contracts/expiring?days=${days}`, {
+    headers: getAuthHeaders(),
+  });
+
+  return handleResponse<ContractListItem[]>(response);
 }

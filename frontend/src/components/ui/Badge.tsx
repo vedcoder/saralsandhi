@@ -25,6 +25,8 @@ const statusLabels: Record<ContractStatus, string> = {
   pending_review: 'Pending Review',
   reviewed: 'Reviewed',
   archived: 'Archived',
+  approved: 'Approved',
+  rejected: 'Rejected',
 };
 
 const languageColors: Record<DetectedLanguage, string> = {
@@ -45,6 +47,8 @@ const statusColors: Record<ContractStatus, string> = {
   pending_review: 'bg-gray-100 text-gray-800',
   reviewed: 'bg-green-100 text-green-800',
   archived: 'bg-gray-100 text-gray-600',
+  approved: 'bg-green-100 text-green-800',
+  rejected: 'bg-red-100 text-red-800',
 };
 
 export default function Badge({ variant, value }: BadgeProps) {

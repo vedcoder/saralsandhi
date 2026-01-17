@@ -6,7 +6,7 @@ import ContractTable from '@/components/dashboard/ContractTable';
 import UploadButton from '@/components/dashboard/UploadButton';
 
 export default function DocumentsPage() {
-  const { contracts, isLoading, searchContracts, refresh } = useContracts();
+  const { contracts, isLoading, searchContracts, deleteContract, refresh } = useContracts();
 
   return (
     <div className="p-8">
@@ -24,7 +24,7 @@ export default function DocumentsPage() {
         <UploadButton onUploadComplete={refresh} />
       </div>
 
-      <ContractTable contracts={contracts} isLoading={isLoading} />
+      <ContractTable contracts={contracts} isLoading={isLoading} onDelete={deleteContract} />
     </div>
   );
 }

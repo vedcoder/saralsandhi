@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Clause, Risk, Language } from '@/types/contract';
+import { useState, useEffect, useRef } from 'react';
+import { Clause, Risk, Language, Translation } from '@/types/contract';
 import { LanguageSelector } from './LanguageSelector';
 import { RiskAlert } from './RiskAlert';
 import { AIChat } from './AIChat';
@@ -18,6 +18,10 @@ interface DecoderPanelProps {
   contractId: string;
   allClauses: Clause[];
   allRisks: Risk[];
+  translations: {
+    hindi: Translation[];
+    bengali: Translation[];
+  };
 }
 
 export function DecoderPanel({
@@ -30,6 +34,7 @@ export function DecoderPanel({
   contractId,
   allClauses,
   allRisks,
+  translations,
 }: DecoderPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>('overall');
   const highRisks = risks.filter(r => r.severity === 'high');
@@ -48,9 +53,9 @@ export function DecoderPanel({
   ];
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full p-6">
       {/* Tab Navigation */}
-      <div className="flex-shrink-0 bg-gray-100 px-4 pt-4">
+      <div className="flex-shrink-0 mb-4">
         <div className="flex bg-gray-200 rounded-xl p-1">
           {tabs.map((tab) => (
             <button
@@ -69,11 +74,12 @@ export function DecoderPanel({
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto">
         {activeTab === 'simplify' && (
           <SimplifyTab
             selectedClause={selectedClause}
-            simplifiedText={simplifiedText}
+            allClauses={allClauses}
+            translations={translations}
             selectedLanguage={selectedLanguage}
             onLanguageChange={onLanguageChange}
             languageLabel={languageLabel}
@@ -111,47 +117,96 @@ export function DecoderPanel({
 // Simplify & Translate Tab
 function SimplifyTab({
   selectedClause,
-  simplifiedText,
+  allClauses,
+  translations,
   selectedLanguage,
   onLanguageChange,
   languageLabel,
 }: {
   selectedClause: Clause | null;
-  simplifiedText: string;
+  allClauses: Clause[];
+  translations: {
+    hindi: Translation[];
+    bengali: Translation[];
+  };
   selectedLanguage: Language;
   onLanguageChange: (lang: Language) => void;
   languageLabel: Record<Language, string>;
 }) {
-  if (!selectedClause) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Select a clause to view its simplified explanation</p>
-      </div>
-    );
-  }
+  const clauseRefs = useRef<Record<number, HTMLDivElement | null>>({});
+
+  // Scroll to selected clause when it changes
+  useEffect(() => {
+    if (selectedClause && clauseRefs.current[selectedClause.clause_id]) {
+      clauseRefs.current[selectedClause.clause_id]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    }
+  }, [selectedClause]);
+
+  // Get translation for a specific clause
+  const getTranslation = (clauseId: number): string => {
+    if (selectedLanguage === 'english') {
+      const clause = allClauses.find(c => c.clause_id === clauseId);
+      return clause?.simplified_text || '';
+    }
+    const langTranslations = translations[selectedLanguage as 'hindi' | 'bengali'];
+    const translation = langTranslations?.find(t => t.clause_id === clauseId);
+    return translation?.translated_text || '';
+  };
 
   return (
     <div>
-      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-gray-700">
-            Simplified Explanation ({languageLabel[selectedLanguage]})
-          </h3>
-          <LanguageSelector
-            value={selectedLanguage}
-            onChange={onLanguageChange}
-          />
-        </div>
-        <p className="text-gray-800 leading-relaxed">
-          {simplifiedText || 'Translation not available'}
-        </p>
+      {/* Language Selector Header */}
+      <div className="flex items-center justify-between mb-4 sticky -top-6 bg-gray-50 py-2 -mx-6 px-6 z-10">
+        <h3 className="text-sm font-medium text-gray-700">
+          Simplified Contract ({languageLabel[selectedLanguage]})
+        </h3>
+        <LanguageSelector
+          value={selectedLanguage}
+          onChange={onLanguageChange}
+        />
       </div>
 
-      <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Original Text</h3>
-        <p className="text-gray-600 text-sm leading-relaxed">
-          {selectedClause.original_text}
-        </p>
+      {/* All Clauses */}
+      <div className="space-y-3">
+        {allClauses.map((clause) => {
+          const isSelected = selectedClause?.clause_id === clause.clause_id;
+          const translatedText = getTranslation(clause.clause_id);
+
+          return (
+            <div
+              key={clause.clause_id}
+              ref={(el) => { clauseRefs.current[clause.clause_id] = el; }}
+              className={`rounded-lg border p-4 transition-all duration-300 ${
+                isSelected
+                  ? 'bg-indigo-50 border-indigo-400 ring-2 ring-indigo-200 shadow-md'
+                  : 'bg-white border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-gray-100 text-gray-600'
+                }`}>
+                  Clause {clause.clause_id}
+                </span>
+                {isSelected && (
+                  <span className="text-xs text-indigo-600 font-medium">
+                    Currently Selected
+                  </span>
+                )}
+              </div>
+              <p className={`leading-relaxed ${
+                isSelected ? 'text-gray-900' : 'text-gray-700'
+              }`}>
+                {translatedText || 'Translation not available'}
+              </p>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

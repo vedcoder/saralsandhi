@@ -6,9 +6,10 @@ import ContractRow from './ContractRow';
 interface ContractTableProps {
   contracts: ContractListItem[];
   isLoading: boolean;
+  onDelete?: (contractId: string) => Promise<boolean>;
 }
 
-export default function ContractTable({ contracts, isLoading }: ContractTableProps) {
+export default function ContractTable({ contracts, isLoading, onDelete }: ContractTableProps) {
   if (isLoading) {
     return (
       <div className="bg-white rounded-xl border border-gray-200">
@@ -40,17 +41,19 @@ export default function ContractTable({ contracts, isLoading }: ContractTablePro
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div className="flex items-center gap-4 px-6 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
-        <div className="flex-shrink-0 w-10"></div>
-        <div className="flex-1">Contract Name</div>
-        <div className="flex-shrink-0 w-32">Detected Language</div>
-        <div className="flex-shrink-0 w-28">Risk Score</div>
-        <div className="flex-shrink-0 w-32">Status</div>
+      <div className="flex items-center px-6 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-500 uppercase tracking-wider">
+        <div className="w-10 flex-shrink-0 mr-4"></div>
+        <div className="flex-1 mr-4">Contract Name</div>
+        <div className="w-36 flex-shrink-0 mr-4">Detected Language</div>
+        <div className="w-24 flex-shrink-0 mr-4">Risk Score</div>
+        <div className="w-52 flex-shrink-0 mr-4">Status</div>
+        <div className="w-28 flex-shrink-0">Verification</div>
+        <div className="w-20 flex-shrink-0 ml-4">Actions</div>
       </div>
 
       <div className="divide-y divide-gray-100">
         {contracts.map((contract) => (
-          <ContractRow key={contract.id} contract={contract} />
+          <ContractRow key={contract.id} contract={contract} onDelete={onDelete} />
         ))}
       </div>
     </div>

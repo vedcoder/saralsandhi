@@ -4,7 +4,15 @@ from uuid import UUID
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from schemas.contract import ContractAnalysisResponse, ContractListResponse, ChatRequest, ChatResponse
+from datetime import datetime
+from schemas.contract import ContractAnalysisResponse, ContractListResponse, ContractListItem, ChatRequest, ChatResponse, ContractCategory
+from schemas.contract_party import (
+    AddSecondPartyRequest,
+    ApprovalRequest,
+    ContractPartyResponse,
+    ContractApprovalStatus,
+)
+from schemas.contract_event import AuditTrailResponse
 from services.contract_service import ContractService
 from services.chat_service import ChatService
 from core.database import get_db
@@ -60,6 +68,22 @@ async def list_contracts(
         search=search,
         limit=limit,
         offset=offset
+    )
+
+
+@router.get("/contracts/expiring", response_model=list[ContractListItem])
+async def get_expiring_contracts(
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    days: int = Query(30, ge=1, le=365, description="Number of days to look ahead")
+):
+    """Get contracts expiring within the specified number of days."""
+    logger.info(f"📅 Getting expiring contracts for user: {current_user.email} (within {days} days)")
+
+    return await contract_service.get_expiring_contracts(
+        user_id=current_user.id,
+        db=db,
+        days=days
     )
 
 
@@ -123,3 +147,136 @@ async def chat_with_contract(
     )
 
     return ChatResponse(response=response)
+
+
+# Party management endpoints
+
+@router.post("/contracts/{contract_id}/parties", response_model=ContractPartyResponse)
+async def add_second_party(
+    contract_id: UUID,
+    request: AddSecondPartyRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Add a second party to the contract by email. Only first party can do this."""
+    logger.info(f"👥 Adding second party to contract: {contract_id} by user: {current_user.email}")
+
+    return await contract_service.add_second_party(
+        contract_id=contract_id,
+        user_id=current_user.id,
+        second_party_email=request.email,
+        db=db
+    )
+
+
+@router.get("/contracts/{contract_id}/parties", response_model=ContractApprovalStatus)
+async def get_contract_parties(
+    contract_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Get approval status for all parties on a contract."""
+    logger.info(f"📋 Getting parties for contract: {contract_id} by user: {current_user.email}")
+
+    return await contract_service.get_contract_parties(
+        contract_id=contract_id,
+        user_id=current_user.id,
+        db=db
+    )
+
+
+@router.post("/contracts/{contract_id}/approve", response_model=ContractApprovalStatus)
+async def approve_or_reject_contract(
+    contract_id: UUID,
+    request: ApprovalRequest,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Approve or reject a contract. Both parties can use this endpoint."""
+    action = "approving" if request.approved else "rejecting"
+    logger.info(f"✅ User {current_user.email} is {action} contract: {contract_id}")
+
+    return await contract_service.set_approval(
+        contract_id=contract_id,
+        user_id=current_user.id,
+        approved=request.approved,
+        db=db
+    )
+
+
+@router.delete("/contracts/{contract_id}/parties/second")
+async def remove_second_party(
+    contract_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Remove second party from contract. Only first party can do this."""
+    logger.info(f"🗑️ Removing second party from contract: {contract_id} by user: {current_user.email}")
+
+    await contract_service.remove_second_party(
+        contract_id=contract_id,
+        user_id=current_user.id,
+        db=db
+    )
+
+    return {"message": "Second party removed successfully"}
+
+
+# Audit trail endpoint
+
+@router.get("/contracts/{contract_id}/audit-trail", response_model=AuditTrailResponse)
+async def get_audit_trail(
+    contract_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Get the audit trail for a contract. Only accessible by contract parties."""
+    logger.info(f"📜 Getting audit trail for contract: {contract_id} by user: {current_user.email}")
+
+    return await contract_service.get_audit_trail(
+        contract_id=contract_id,
+        user_id=current_user.id,
+        db=db
+    )
+
+
+@router.post("/contracts/{contract_id}/translation-viewed")
+async def log_translation_viewed(
+    contract_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    language: str = Query(..., description="Language of the translation viewed")
+):
+    """Log when a user views a translation. Called from frontend."""
+    logger.info(f"👁️ Translation viewed ({language}) for contract: {contract_id} by user: {current_user.email}")
+
+    await contract_service.log_translation_viewed(
+        contract_id=contract_id,
+        user_id=current_user.id,
+        language=language,
+        db=db
+    )
+
+    return {"message": "Translation view logged"}
+
+
+# Contract details update endpoint
+
+@router.patch("/contracts/{contract_id}", response_model=ContractListItem)
+async def update_contract_details(
+    contract_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    category: Optional[ContractCategory] = Query(None, description="Contract category"),
+    expiry_date: Optional[datetime] = Query(None, description="Contract expiry date (ISO format)")
+):
+    """Update contract category and/or expiry date. Only contract owner can do this."""
+    logger.info(f"📝 Updating contract details: {contract_id} by user: {current_user.email}")
+
+    return await contract_service.update_contract_details(
+        contract_id=contract_id,
+        user_id=current_user.id,
+        db=db,
+        category=category.value if category else None,
+        expiry_date=expiry_date
+    )

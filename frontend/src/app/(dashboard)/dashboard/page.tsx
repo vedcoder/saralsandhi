@@ -1,14 +1,33 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useContracts } from '@/hooks/useContracts';
 import { useAuth } from '@/contexts/AuthContext';
 import UploadButton from '@/components/dashboard/UploadButton';
 import Badge from '@/components/ui/Badge';
+import { getExpiringContracts } from '@/lib/api';
+import { ContractListItem } from '@/types/contract';
 
 export default function DashboardPage() {
   const { contracts, isLoading, refresh } = useContracts();
   const { user } = useAuth();
+  const [expiringContracts, setExpiringContracts] = useState<ContractListItem[]>([]);
+  const [isLoadingExpiring, setIsLoadingExpiring] = useState(true);
+
+  useEffect(() => {
+    async function fetchExpiringContracts() {
+      try {
+        const data = await getExpiringContracts(30);
+        setExpiringContracts(data);
+      } catch (error) {
+        console.error('Failed to fetch expiring contracts:', error);
+      } finally {
+        setIsLoadingExpiring(false);
+      }
+    }
+    fetchExpiringContracts();
+  }, []);
 
   // Calculate stats
   const totalContracts = contracts.length;
@@ -88,6 +107,65 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Expiring Soon Section */}
+      {expiringContracts.length > 0 && (
+        <div className="bg-amber-50 rounded-xl border border-amber-200 p-6 mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-amber-900">Expiring Soon</h2>
+              <p className="text-sm text-amber-700">Contracts expiring within the next 30 days</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {expiringContracts.map((contract) => {
+              const expiryDate = contract.expiry_date ? new Date(contract.expiry_date) : null;
+              const daysUntilExpiry = expiryDate
+                ? Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                : null;
+
+              return (
+                <Link
+                  key={contract.id}
+                  href={`/contracts/${contract.id}`}
+                  className="flex items-center justify-between p-3 bg-white rounded-lg border border-amber-200 hover:border-amber-300 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-amber-100 rounded flex items-center justify-center">
+                      <svg className="w-4 h-4 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{contract.filename}</p>
+                      <p className="text-xs text-amber-600 font-medium">
+                        {daysUntilExpiry !== null && daysUntilExpiry <= 7 ? (
+                          <span className="text-red-600">Expires in {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''}</span>
+                        ) : (
+                          <>Expires on {expiryDate?.toLocaleDateString()}</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {contract.category && (
+                      <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded-full capitalize">
+                        {contract.category.replace('_', ' ')}
+                      </span>
+                    )}
+                    <Badge variant="risk" value={contract.risk_score} />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Quick Actions & Recent Contracts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Quick Actions */}
@@ -144,9 +222,15 @@ export default function DashboardPage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">{contract.filename}</p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(contract.created_at).toLocaleDateString()}
-                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <span>{new Date(contract.created_at).toLocaleDateString()}</span>
+                        {contract.category && (
+                          <>
+                            <span>•</span>
+                            <span className="capitalize">{contract.category.replace('_', ' ')}</span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <Badge variant="risk" value={contract.risk_score} />

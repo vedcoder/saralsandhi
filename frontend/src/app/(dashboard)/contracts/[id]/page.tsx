@@ -1,16 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useContract } from '@/hooks/useContract';
 import { ContractPanel } from '@/components/ContractPanel';
 import { DecoderPanel } from '@/components/DecoderPanel';
+import { ApprovalPanel } from '@/components/contract/ApprovalPanel';
+import { AuditTrailModal } from '@/components/contract/AuditTrailModal';
 
 export default function ContractDetailPage() {
   const params = useParams();
   const router = useRouter();
   const contractId = params.id as string;
   const contract = useContract(contractId);
+  const [isAuditTrailOpen, setIsAuditTrailOpen] = useState(false);
 
   if (contract.isLoading) {
     return (
@@ -70,12 +74,32 @@ export default function ContractDetailPage() {
               <p className="text-sm text-gray-500">SaralSandhi - Contract Analysis Made Simple</p>
             </div>
           </div>
-          <Link
-            href="/dashboard"
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-          >
-            Back to Dashboard
-          </Link>
+          <div className="flex items-center gap-4">
+            {/* Approval Panel in Header */}
+            {contract.approvalStatus && (
+              <ApprovalPanel
+                contractId={contractId}
+                approvalStatus={contract.approvalStatus}
+                onStatusChange={contract.setApprovalStatus}
+              />
+            )}
+            {/* Audit Trail Button */}
+            <button
+              onClick={() => setIsAuditTrailOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Audit Trail
+            </button>
+            <Link
+              href="/dashboard"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -107,9 +131,17 @@ export default function ContractDetailPage() {
             contractId={contractId}
             allClauses={contract.analysis.clauses}
             allRisks={contract.analysis.risks}
+            translations={contract.analysis.translations}
           />
         </div>
       </div>
+
+      {/* Audit Trail Modal */}
+      <AuditTrailModal
+        contractId={contractId}
+        isOpen={isAuditTrailOpen}
+        onClose={() => setIsAuditTrailOpen(false)}
+      />
     </div>
   );
 }

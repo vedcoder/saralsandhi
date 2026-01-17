@@ -26,6 +26,8 @@ class ContractStatus(str, enum.Enum):
     PENDING_REVIEW = "pending_review"
     REVIEWED = "reviewed"
     ARCHIVED = "archived"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 class RiskSeverity(str, enum.Enum):
@@ -37,6 +39,18 @@ class RiskSeverity(str, enum.Enum):
 class TranslationLanguage(str, enum.Enum):
     HINDI = "hindi"
     BENGALI = "bengali"
+
+
+class ContractCategory(str, enum.Enum):
+    EMPLOYMENT = "employment"
+    RENTAL = "rental"
+    NDA = "nda"
+    SERVICE = "service"
+    SALES = "sales"
+    PARTNERSHIP = "partnership"
+    LOAN = "loan"
+    INSURANCE = "insurance"
+    OTHER = "other"
 
 
 class Contract(Base):
@@ -60,6 +74,12 @@ class Contract(Base):
         Enum(ContractStatus), default=ContractStatus.PENDING_REVIEW
     )
     risk_summary: Mapped[str] = mapped_column(Text, nullable=True)
+    category: Mapped[ContractCategory] = mapped_column(
+        Enum(ContractCategory), default=ContractCategory.OTHER, nullable=True
+    )
+    expiry_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    blockchain_hash: Mapped[str] = mapped_column(String(66), nullable=True)  # 0x + 64 hex chars
+    finalized_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -69,6 +89,12 @@ class Contract(Base):
     user: Mapped["User"] = relationship("User", back_populates="contracts")
     clauses: Mapped[list["Clause"]] = relationship(
         "Clause", back_populates="contract", cascade="all, delete-orphan"
+    )
+    parties: Mapped[list["ContractParty"]] = relationship(
+        "ContractParty", back_populates="contract", cascade="all, delete-orphan"
+    )
+    events: Mapped[list["ContractEvent"]] = relationship(
+        "ContractEvent", back_populates="contract", cascade="all, delete-orphan", order_by="ContractEvent.created_at"
     )
 
 

@@ -1,20 +1,23 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { ContractAnalysis, Language, Clause, Risk } from '@/types/contract';
-import { analyzeContract, getContract } from '@/lib/api';
+import { ContractAnalysis, Language, Clause, Risk, ContractApprovalStatus } from '@/types/contract';
+import { analyzeContract, getContract, getContractParties } from '@/lib/api';
 
 export function useContract(contractId?: string) {
   const [analysis, setAnalysis] = useState<ContractAnalysis | null>(null);
   const [selectedClauseId, setSelectedClauseId] = useState<number | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>('english');
+  const [selectedLanguage, setSelectedLanguage] = useState<Language>('hindi');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [approvalStatus, setApprovalStatus] = useState<ContractApprovalStatus | null>(null);
+  const [isLoadingApproval, setIsLoadingApproval] = useState(false);
 
   // Load contract by ID if provided
   useEffect(() => {
     if (contractId) {
       loadContract(contractId);
+      loadApprovalStatus(contractId);
     }
   }, [contractId]);
 
@@ -31,6 +34,18 @@ export function useContract(contractId?: string) {
       setError(e instanceof Error ? e.message : 'Failed to load contract');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadApprovalStatus = async (id: string) => {
+    setIsLoadingApproval(true);
+    try {
+      const status = await getContractParties(id);
+      setApprovalStatus(status);
+    } catch (e) {
+      console.error('Failed to load approval status:', e);
+    } finally {
+      setIsLoadingApproval(false);
     }
   };
 
@@ -84,8 +99,11 @@ export function useContract(contractId?: string) {
     selectedLanguage,
     isLoading,
     error,
+    approvalStatus,
+    isLoadingApproval,
     setSelectedClauseId,
     setSelectedLanguage,
+    setApprovalStatus,
     uploadAndAnalyze,
     getSelectedClause,
     getTranslationForClause,

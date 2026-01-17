@@ -29,6 +29,26 @@ class ContractStatus(str, Enum):
     PENDING_REVIEW = "pending_review"
     REVIEWED = "reviewed"
     ARCHIVED = "archived"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class ApprovalStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class ContractCategory(str, Enum):
+    EMPLOYMENT = "employment"
+    RENTAL = "rental"
+    NDA = "nda"
+    SERVICE = "service"
+    SALES = "sales"
+    PARTNERSHIP = "partnership"
+    LOAN = "loan"
+    INSURANCE = "insurance"
+    OTHER = "other"
 
 
 class Clause(BaseModel):
@@ -67,6 +87,17 @@ class ContractListItem(BaseModel):
     risk_score: RiskScore
     status: ContractStatus
     created_at: datetime
+    # Category and expiry
+    category: Optional[ContractCategory] = None
+    expiry_date: Optional[datetime] = None
+    # Approval-related fields
+    is_owner: bool = True
+    my_approval_status: Optional[ApprovalStatus] = None
+    other_party_approval_status: Optional[ApprovalStatus] = None
+    has_second_party: bool = False
+    # Blockchain verification
+    blockchain_hash: Optional[str] = None
+    finalized_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
