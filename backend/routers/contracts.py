@@ -15,6 +15,7 @@ from schemas.contract_party import (
 from schemas.contract_event import AuditTrailResponse
 from services.contract_service import ContractService
 from services.chat_service import ChatService
+from services.blockchain_service import blockchain_service
 from core.database import get_db
 from core.deps import get_current_active_user
 from models.user import User
@@ -280,3 +281,57 @@ async def update_contract_details(
         category=category.value if category else None,
         expiry_date=expiry_date
     )
+
+
+# Blockchain verification endpoint
+
+@router.get("/contracts/{contract_id}/verify-blockchain")
+async def verify_blockchain_hash(
+    contract_id: UUID,
+    current_user: Annotated[User, Depends(get_current_active_user)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Verify the contract's blockchain hash against on-chain storage."""
+    logger.info(f"🔗 Verifying blockchain hash for contract: {contract_id} by user: {current_user.email}")
+
+    # Get the contract first
+    contract = await contract_service.get_contract_model(contract_id, current_user.id, db)
+    if not contract:
+        raise HTTPException(status_code=404, detail="Contract not found")
+
+    if not contract.blockchain_hash:
+        return {
+            "verified": False,
+            "error": "Contract has not been finalized with blockchain verification",
+            "blockchain_enabled": blockchain_service.is_enabled
+        }
+
+    if not blockchain_service.is_enabled:
+        return {
+            "verified": False,
+            "error": "Blockchain integration is not enabled",
+            "blockchain_enabled": False,
+            "blockchain_hash": contract.blockchain_hash,
+            "blockchain_tx_hash": contract.blockchain_tx_hash
+        }
+
+    # Verify the hash on-chain
+    is_valid, error = await blockchain_service.verify_hash_on_chain(
+        contract_id=contract_id,
+        document_hash=contract.blockchain_hash
+    )
+
+    result = {
+        "verified": is_valid,
+        "blockchain_enabled": True,
+        "blockchain_hash": contract.blockchain_hash,
+        "blockchain_tx_hash": contract.blockchain_tx_hash,
+    }
+
+    if contract.blockchain_tx_hash:
+        result["etherscan_url"] = blockchain_service.get_etherscan_url(contract.blockchain_tx_hash)
+
+    if error:
+        result["error"] = error
+
+    return result

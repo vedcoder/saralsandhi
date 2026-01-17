@@ -279,15 +279,43 @@ export function AuditTrailModal({ contractId, isOpen, onClose }: AuditTrailModal
                 {/* Blockchain Verified Section */}
                 {auditData.blockchain_hash && (
                   <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-3">
                       <div className="w-10 h-10 rounded-full bg-green-100 border-2 border-green-300 flex items-center justify-center flex-shrink-0">
                         <ShieldCheckIcon className="w-5 h-5 text-green-600" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-green-800">Blockchain Verified</p>
-                        <p className="text-sm text-green-600 font-mono truncate">
-                          Hash: {auditData.blockchain_hash}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-green-800">
+                          {auditData.blockchain_tx_hash ? 'On-Chain Verified' : 'Hash Generated'}
                         </p>
+                        <div className="mt-2 space-y-1.5">
+                          <div>
+                            <p className="text-xs text-green-700 font-medium">Document Hash</p>
+                            <p className="text-xs text-green-600 font-mono break-all">
+                              {auditData.blockchain_hash}
+                            </p>
+                          </div>
+                          {auditData.blockchain_tx_hash && (
+                            <div>
+                              <p className="text-xs text-green-700 font-medium">Transaction Hash</p>
+                              <p className="text-xs text-green-600 font-mono break-all">
+                                {auditData.blockchain_tx_hash}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        {auditData.blockchain_tx_hash && (
+                          <a
+                            href={`https://sepolia.etherscan.io/tx/${auditData.blockchain_tx_hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            View on Etherscan
+                          </a>
+                        )}
                       </div>
                     </div>
                   </div>

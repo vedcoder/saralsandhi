@@ -67,6 +67,7 @@ export interface ContractListItem {
   other_party_approval_status: ApprovalStatus | null;
   has_second_party: boolean;
   blockchain_hash: string | null;
+  blockchain_tx_hash: string | null;
   finalized_at: string | null;
 }
 
@@ -122,4 +123,5 @@ export interface AuditTrailResponse {
   contract_id: string;
   events: ContractEvent[];
   blockchain_hash: string | null;
+  blockchain_tx_hash: string | null;
 }

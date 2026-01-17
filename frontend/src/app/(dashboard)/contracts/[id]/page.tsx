@@ -56,8 +56,8 @@ export default function ContractDetailPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
+      <header className="bg-white border-b border-gray-200 px-6 flex-shrink-0 h-[73px]">
+        <div className="flex items-center justify-between h-full">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push('/dashboard')}
@@ -74,45 +74,51 @@ export default function ContractDetailPage() {
               <p className="text-sm text-gray-500">SaralSandhi - Contract Analysis Made Simple</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            {/* Approval Panel in Header */}
-            {contract.approvalStatus && (
-              <ApprovalPanel
-                contractId={contractId}
-                approvalStatus={contract.approvalStatus}
-                onStatusChange={contract.setApprovalStatus}
-              />
-            )}
-            {/* Audit Trail Button */}
-            <button
-              onClick={() => setIsAuditTrailOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Audit Trail
-            </button>
-            <Link
-              href="/dashboard"
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Back to Dashboard
-            </Link>
-          </div>
+          <Link
+            href="/dashboard"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Back to Dashboard
+          </Link>
         </div>
       </header>
 
       {/* Main Content - Split Panel Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel - Original Contract */}
-        <div className="w-1/2 border-r border-gray-200 overflow-y-auto bg-white">
-          <ContractPanel
-            clauses={contract.analysis.clauses}
-            selectedClauseId={contract.selectedClauseId}
-            onClauseSelect={contract.setSelectedClauseId}
-            risks={contract.analysis.risks}
-          />
+        <div className="w-1/2 border-r border-gray-200 flex flex-col bg-white">
+          {/* Contract Actions Bar */}
+          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+            <div className="flex items-center gap-3">
+              {/* Approval Panel */}
+              {contract.approvalStatus && (
+                <ApprovalPanel
+                  contractId={contractId}
+                  approvalStatus={contract.approvalStatus}
+                  onStatusChange={contract.setApprovalStatus}
+                />
+              )}
+            </div>
+            {/* Audit Trail Button */}
+            <button
+              onClick={() => setIsAuditTrailOpen(true)}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Audit Trail
+            </button>
+          </div>
+          {/* Contract Content */}
+          <div className="flex-1 overflow-y-auto">
+            <ContractPanel
+              clauses={contract.analysis.clauses}
+              selectedClauseId={contract.selectedClauseId}
+              onClauseSelect={contract.setSelectedClauseId}
+              risks={contract.analysis.risks}
+            />
+          </div>
         </div>
 
         {/* Right Panel - AI Decoder */}

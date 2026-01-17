@@ -21,3 +21,4 @@ class AuditTrailResponse(BaseModel):
     contract_id: str
     events: list[ContractEventResponse]
     blockchain_hash: Optional[str] = None
+    blockchain_tx_hash: Optional[str] = None

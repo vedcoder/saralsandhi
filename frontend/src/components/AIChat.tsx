@@ -11,6 +11,75 @@ interface Message {
   timestamp: Date;
 }
 
+// Simple markdown renderer for chat messages
+function renderMarkdown(text: string): React.ReactNode {
+  // Split by lines to handle bullet points
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let inList = false;
+  let listItems: string[] = [];
+
+  const processInlineMarkdown = (line: string): React.ReactNode => {
+    // Handle bold **text**
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={`list-${elements.length}`} className="list-disc list-inside space-y-1 my-2">
+          {listItems.map((item, i) => (
+            <li key={i} className="text-sm">{processInlineMarkdown(item)}</li>
+          ))}
+        </ul>
+      );
+      listItems = [];
+    }
+    inList = false;
+  };
+
+  lines.forEach((line, index) => {
+    const trimmedLine = line.trim();
+
+    // Check for bullet points
+    if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('• ')) {
+      inList = true;
+      listItems.push(trimmedLine.slice(2));
+    } else if (trimmedLine.startsWith('* ') && !trimmedLine.startsWith('**')) {
+      inList = true;
+      listItems.push(trimmedLine.slice(2));
+    } else {
+      // Flush any pending list
+      flushList();
+
+      if (trimmedLine === '') {
+        // Empty line - add spacing
+        if (elements.length > 0) {
+          elements.push(<div key={`space-${index}`} className="h-2" />);
+        }
+      } else {
+        // Regular text
+        elements.push(
+          <p key={`p-${index}`} className="text-sm">
+            {processInlineMarkdown(trimmedLine)}
+          </p>
+        );
+      }
+    }
+  });
+
+  // Flush any remaining list
+  flushList();
+
+  return <div className="space-y-1">{elements}</div>;
+}
+
 interface AIChatProps {
   contractId: string;
   clauses: Clause[];
@@ -111,7 +180,11 @@ export function AIChat({ contractId, clauses, risks }: AIChatProps) {
                   : 'bg-white border border-gray-200 text-gray-800'
               }`}
             >
-              <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              {message.role === 'assistant' ? (
+                renderMarkdown(message.content)
+              ) : (
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              )}
             </div>
           </div>
         ))}

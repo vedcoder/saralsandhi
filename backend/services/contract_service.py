@@ -14,7 +14,8 @@ from contract_manager import (
     extract_text_from_pdf,
     model_a_simplify,
     model_b_translate,
-    model_c_detect_risks
+    model_c_detect_risks,
+    extract_metadata,
 )
 from schemas.contract import (
     ContractAnalysisResponse,
@@ -48,8 +49,12 @@ from models.contract_party import ContractParty, PartyRole, ApprovalStatus
 from models.contract_event import ContractEvent, EventType
 from models.user import User
 from schemas.contract_event import ContractEventResponse, AuditTrailResponse
+from services.blockchain_service import blockchain_service
 import json
 import hashlib
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ContractService:
@@ -122,17 +127,34 @@ class ContractService:
                     error=model_a_result.error
                 )
 
-            # Run Model B and C in parallel
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            # Run Model B, C, and metadata extraction in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
                 future_b = executor.submit(model_b_translate, client, model_a_result.clauses)
                 future_c = executor.submit(model_c_detect_risks, client, model_a_result.clauses)
+                future_meta = executor.submit(extract_metadata, client, contract_text)
 
                 model_b_result = future_b.result()
                 model_c_result = future_c.result()
+                metadata_result = future_meta.result()
 
             # Calculate overall risk score
             risk_score = self._calculate_risk_score(model_c_result.risks)
             detected_language = self._determine_language(model_b_result.translations)
+
+            # Parse category and expiry date from metadata
+            contract_category = None
+            expiry_date = None
+            if metadata_result.success:
+                if metadata_result.category:
+                    try:
+                        contract_category = DBContractCategory(metadata_result.category)
+                    except ValueError:
+                        contract_category = DBContractCategory.OTHER
+                if metadata_result.expiry_date:
+                    try:
+                        expiry_date = datetime.strptime(metadata_result.expiry_date, "%Y-%m-%d")
+                    except ValueError:
+                        pass  # Invalid date format, leave as None
 
             # Create contract in database
             contract = Contract(
@@ -143,6 +165,8 @@ class ContractService:
                 overall_risk_score=risk_score,
                 status=ContractStatus.PENDING_REVIEW,
                 risk_summary=model_c_result.summary,
+                category=contract_category,
+                expiry_date=expiry_date,
             )
             db.add(contract)
             await db.flush()
@@ -305,6 +329,7 @@ class ContractService:
                 other_party_approval_status=SchemaApprovalStatus(other_party.approval_status.value) if other_party else None,
                 has_second_party=has_second_party,
                 blockchain_hash=c.blockchain_hash,
+                blockchain_tx_hash=c.blockchain_tx_hash,
                 finalized_at=c.finalized_at,
             ))
 
@@ -404,6 +429,23 @@ class ContractService:
 
         await db.delete(contract)
         return True
+
+    async def get_contract_model(
+        self,
+        contract_id: UUID,
+        user_id: UUID,
+        db: AsyncSession
+    ) -> Optional[Contract]:
+        """Get the raw contract model. Used for blockchain verification."""
+        # Check if user is a party to this contract
+        party = await self._get_user_party(contract_id, user_id, db)
+        if not party:
+            return None
+
+        result = await db.execute(
+            select(Contract).where(Contract.id == contract_id)
+        )
+        return result.scalar_one_or_none()
 
     async def _get_user_party(
         self,
@@ -608,6 +650,12 @@ class ContractService:
 
         # Log finalization if both approved
         if was_finalized:
+            # Get contract to access blockchain info
+            contract_result = await db.execute(
+                select(Contract).where(Contract.id == contract_id)
+            )
+            contract = contract_result.scalar_one_or_none()
+
             await self._log_event(
                 contract_id=contract_id,
                 event_type=EventType.CONTRACT_FINALIZED,
@@ -617,9 +665,14 @@ class ContractService:
             await self._log_event(
                 contract_id=contract_id,
                 event_type=EventType.BLOCKCHAIN_VERIFIED,
-                description="Contract hash stored on blockchain",
+                description="Contract hash stored on blockchain" if contract.blockchain_tx_hash else "Contract hash generated (blockchain pending)",
                 db=db,
-                metadata={"hash": self._generate_blockchain_hash(str(contract_id), [])},
+                metadata={
+                    "document_hash": contract.blockchain_hash,
+                    "transaction_hash": contract.blockchain_tx_hash,
+                    "etherscan_url": blockchain_service.get_etherscan_url(contract.blockchain_tx_hash) if contract.blockchain_tx_hash else None,
+                    "network": "sepolia"
+                },
             )
 
         return await self.get_contract_parties(contract_id, user_id, db)
@@ -663,7 +716,9 @@ class ContractService:
              second_party.approval_status == ApprovalStatus.APPROVED:
             contract.status = ContractStatus.APPROVED
             # Generate and store blockchain hash
-            contract.blockchain_hash = self._generate_blockchain_hash(str(contract_id), [])
+            document_hash, tx_hash = await self._generate_and_store_blockchain_hash(contract, db)
+            contract.blockchain_hash = document_hash
+            contract.blockchain_tx_hash = tx_hash
             contract.finalized_at = datetime.utcnow()
             finalized = True
 
@@ -753,11 +808,44 @@ class ContractService:
         await db.flush()
         return event
 
-    def _generate_blockchain_hash(self, contract_id: str, events: list) -> str:
-        """Generate a mock blockchain hash for the contract finalization."""
-        # Create a deterministic hash based on contract data
-        data = f"{contract_id}:{len(events)}:{events[-1].created_at.isoformat() if events else ''}"
-        return "0x" + hashlib.sha256(data.encode()).hexdigest()[:40]
+    async def _generate_and_store_blockchain_hash(
+        self,
+        contract: Contract,
+        db: AsyncSession
+    ) -> tuple[str, Optional[str]]:
+        """
+        Generate document hash and store on blockchain.
+
+        Returns:
+            Tuple of (document_hash, transaction_hash)
+        """
+        # Build metadata for hashing
+        metadata = {
+            "filename": contract.filename,
+            "created_at": contract.created_at.isoformat(),
+            "user_id": str(contract.user_id),
+        }
+
+        # Generate deterministic hash
+        document_hash = blockchain_service.generate_document_hash(
+            contract.pdf_data,
+            contract.id,
+            metadata
+        )
+
+        # Attempt to store on blockchain
+        if blockchain_service.is_enabled:
+            success, tx_hash, error = await blockchain_service.store_hash_on_chain(
+                contract.id,
+                document_hash
+            )
+            if success:
+                return document_hash, tx_hash
+            else:
+                # Log error but continue with just the hash
+                logger.warning(f"Blockchain storage failed: {error}")
+
+        return document_hash, None
 
     async def get_audit_trail(
         self,
@@ -805,6 +893,7 @@ class ContractService:
             contract_id=str(contract_id),
             events=event_responses,
             blockchain_hash=contract.blockchain_hash if contract else None,
+            blockchain_tx_hash=contract.blockchain_tx_hash if contract else None,
         )
 
     async def log_translation_viewed(
@@ -888,6 +977,7 @@ class ContractService:
             other_party_approval_status=SchemaApprovalStatus(other_party.approval_status.value) if other_party else None,
             has_second_party=has_second_party,
             blockchain_hash=contract.blockchain_hash,
+            blockchain_tx_hash=contract.blockchain_tx_hash,
             finalized_at=contract.finalized_at,
         )
 
@@ -953,6 +1043,7 @@ class ContractService:
                 other_party_approval_status=SchemaApprovalStatus(other_party.approval_status.value) if other_party else None,
                 has_second_party=has_second_party,
                 blockchain_hash=c.blockchain_hash,
+                blockchain_tx_hash=c.blockchain_tx_hash,
                 finalized_at=c.finalized_at,
             ))
 

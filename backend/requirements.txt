@@ -12,3 +12,5 @@ asyncpg>=0.29.0
 greenlet>=3.0.0
 python-jose[cryptography]>=3.3.0
 bcrypt>=4.0.0
+web3>=6.0.0
+eth-account>=0.11.0

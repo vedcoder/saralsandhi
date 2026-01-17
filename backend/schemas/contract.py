@@ -97,6 +97,7 @@ class ContractListItem(BaseModel):
     has_second_party: bool = False
     # Blockchain verification
     blockchain_hash: Optional[str] = None
+    blockchain_tx_hash: Optional[str] = None
     finalized_at: Optional[datetime] = None
 
     class Config:

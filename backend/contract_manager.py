@@ -58,6 +58,18 @@ class ModelCOutput:
         return json.dumps(asdict(self), indent=2, ensure_ascii=False)
 
 
+@dataclass
+class MetadataOutput:
+    """Output from the Metadata Extractor model."""
+    success: bool
+    category: Optional[str] = None
+    expiry_date: Optional[str] = None  # ISO format date string
+    error: Optional[str] = None
+
+    def to_json(self) -> str:
+        return json.dumps(asdict(self), indent=2, ensure_ascii=False)
+
+
 class GeminiClient:
     """Wrapper for Google Gemini API."""
 
@@ -179,6 +191,65 @@ CLAUSES TO TRANSLATE:
         return ModelBOutput(
             success=False,
             translations={"hindi": [], "bengali": []},
+            error=str(e)
+        )
+
+
+def extract_metadata(client: GeminiClient, contract_text: str) -> MetadataOutput:
+    """
+    Extract contract metadata: category and expiry date.
+
+    Returns JSON:
+    {
+        "category": "employment|rental|nda|service|sales|partnership|loan|insurance|other",
+        "expiry_date": "YYYY-MM-DD" or null
+    }
+    """
+    prompt = """You are a legal document analyzer. Extract the following metadata from the contract:
+
+1. **Category**: Determine the type of contract. Choose ONE from:
+   - "employment" - Job offers, employment agreements, work contracts
+   - "rental" - Lease agreements, property rentals, equipment rentals
+   - "nda" - Non-disclosure agreements, confidentiality agreements
+   - "service" - Service level agreements, consulting contracts, freelance agreements
+   - "sales" - Purchase agreements, sale of goods contracts
+   - "partnership" - Business partnership agreements, joint ventures
+   - "loan" - Loan agreements, credit agreements, promissory notes
+   - "insurance" - Insurance policies, coverage agreements
+   - "other" - If none of the above fit
+
+2. **Expiry Date**: Find any end date, termination date, or expiration date mentioned.
+   - Look for phrases like "expires on", "valid until", "term ends", "effective until", "termination date"
+   - If the contract specifies a duration (e.g., "12 months from signing"), calculate the approximate end date from today
+   - Return null if no expiry date can be determined
+
+Return JSON in this exact format:
+{
+    "category": "the_category",
+    "expiry_date": "YYYY-MM-DD" or null
+}
+
+CONTRACT TEXT:
+""" + contract_text[:15000]  # Limit text to avoid token limits
+
+    try:
+        response = client.call(prompt)
+        result = json.loads(response)
+
+        # Validate category
+        valid_categories = ["employment", "rental", "nda", "service", "sales", "partnership", "loan", "insurance", "other"]
+        category = result.get("category", "other").lower()
+        if category not in valid_categories:
+            category = "other"
+
+        return MetadataOutput(
+            success=True,
+            category=category,
+            expiry_date=result.get("expiry_date")
+        )
+    except Exception as e:
+        return MetadataOutput(
+            success=False,
             error=str(e)
         )
 

@@ -79,6 +79,7 @@ class Contract(Base):
     )
     expiry_date: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     blockchain_hash: Mapped[str] = mapped_column(String(66), nullable=True)  # 0x + 64 hex chars
+    blockchain_tx_hash: Mapped[str] = mapped_column(String(66), nullable=True)  # Transaction hash
     finalized_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(

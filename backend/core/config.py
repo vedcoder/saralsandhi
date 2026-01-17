@@ -17,6 +17,15 @@ class Settings(BaseSettings):
     # Frontend URL for CORS
     FRONTEND_URL: str = ""
 
+    # Blockchain Configuration (Sepolia Testnet)
+    BLOCKCHAIN_ENABLED: bool = False
+    ETHEREUM_RPC_URL: str = ""
+    ETHEREUM_PRIVATE_KEY: str = ""
+    CONTRACT_REGISTRY_ADDRESS: str = ""
+    BLOCKCHAIN_GAS_LIMIT: int = 100000
+    BLOCKCHAIN_MAX_RETRIES: int = 3
+    BLOCKCHAIN_RETRY_DELAY: int = 5
+
     class Config:
         env_file = ".env"
         extra = "allow"

@@ -58,31 +58,33 @@ class ChatService:
         conversation_history = self._build_conversation_history(history)
 
         # Create the prompt
-        prompt = f"""You are an expert legal assistant helping a user understand their contract.
-You have access to the contract's clauses, simplified explanations, and identified risks.
+        prompt = f"""You are a helpful legal assistant explaining contract details to users.
 
-Be helpful, clear, and concise. When referring to specific clauses, mention the clause number.
-If the user asks about something not in the contract, let them know.
-Always provide actionable advice when relevant.
+FORMATTING GUIDELINES:
+- Use bullet points (- item) for listing multiple items
+- Use **bold** for key terms and clause references
+- Keep paragraphs short and readable
+- Reference specific clause numbers (e.g., **Clause 3**)
+- Include actionable advice when discussing risks
+- Be thorough but avoid unnecessary repetition
 
-CONTRACT INFORMATION:
+CONTRACT DATA:
 {contract_context}
 
-CONVERSATION HISTORY:
+CHAT HISTORY:
 {conversation_history}
 
-USER'S CURRENT QUESTION:
-{message}
+USER: {message}
 
-Please provide a helpful response:"""
+Provide a helpful, well-structured response:"""
 
         try:
             model = self._get_model()
             response = model.generate_content(
                 prompt,
                 generation_config=genai.GenerationConfig(
-                    temperature=0.7,
-                    max_output_tokens=1024
+                    temperature=0.6,
+                    max_output_tokens=800
                 )
             )
             return response.text

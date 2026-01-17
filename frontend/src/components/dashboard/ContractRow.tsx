@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ContractListItem } from '@/types/contract';
 import Badge from '@/components/ui/Badge';
 import { ApprovalBadge } from '@/components/contract/ApprovalBadge';
@@ -25,10 +25,15 @@ function PDFIcon({ className }: { className?: string }) {
 }
 
 export default function ContractRow({ contract, onDelete, onUpdate }: ContractRowProps) {
+  const router = useRouter();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [localContract, setLocalContract] = useState(contract);
+
+  const handleRowClick = () => {
+    router.push(`/contracts/${localContract.id}`);
+  };
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -59,9 +64,9 @@ export default function ContractRow({ contract, onDelete, onUpdate }: ContractRo
 
   return (
     <>
-      <Link
-        href={`/contracts/${localContract.id}`}
-        className="flex items-center px-6 py-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0 group"
+      <div
+        onClick={handleRowClick}
+        className="flex items-center px-6 py-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0 group cursor-pointer"
       >
         <div className="w-10 flex-shrink-0 mr-4">
           <PDFIcon className="w-10 h-10 text-red-500" />
@@ -101,18 +106,23 @@ export default function ContractRow({ contract, onDelete, onUpdate }: ContractRo
         </div>
 
         <div className="w-52 flex-shrink-0 mr-4">
-          {localContract.has_second_party && localContract.my_approval_status ? (
+          {localContract.has_second_party ? (
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
                 <span className="text-xs text-gray-500">You:</span>
-                <ApprovalBadge status={localContract.my_approval_status} size="sm" />
+                <ApprovalBadge status={localContract.my_approval_status || 'pending'} size="sm" />
               </div>
-              {localContract.other_party_approval_status && (
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-gray-500">Other:</span>
-                  <ApprovalBadge status={localContract.other_party_approval_status} size="sm" />
-                </div>
-              )}
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-gray-500">Other:</span>
+                <ApprovalBadge status={localContract.other_party_approval_status || 'pending'} size="sm" />
+              </div>
+            </div>
+          ) : localContract.is_owner ? (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+              </svg>
+              <span>Add second party</span>
             </div>
           ) : (
             <Badge variant="status" value={localContract.status} />
@@ -121,12 +131,25 @@ export default function ContractRow({ contract, onDelete, onUpdate }: ContractRo
 
         {/* Blockchain Verified Badge */}
         <div className="w-28 flex-shrink-0">
-          {localContract.blockchain_hash ? (
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium">
+          {localContract.blockchain_tx_hash ? (
+            <a
+              href={`https://sepolia.etherscan.io/tx/${localContract.blockchain_tx_hash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium hover:bg-emerald-100 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <span>On-Chain</span>
+            </a>
+          ) : localContract.blockchain_hash ? (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-amber-50 text-amber-700 rounded-full text-xs font-medium">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              <span>Verified</span>
+              <span>Hash Only</span>
             </div>
           ) : (
             <span className="text-xs text-gray-400">Not finalized</span>
@@ -160,7 +183,7 @@ export default function ContractRow({ contract, onDelete, onUpdate }: ContractRo
             </>
           )}
         </div>
-      </Link>
+      </div>
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal

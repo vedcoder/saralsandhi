@@ -49,7 +49,7 @@ export default function Sidebar() {
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen">
-      <div className="p-6 border-b border-gray-200">
+      <div className="px-6 border-b border-gray-200 flex items-center h-[73px]">
         <Link href="/dashboard" className="text-xl font-bold text-gray-900">
           Saral-Sandhi
         </Link>
