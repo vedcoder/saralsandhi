@@ -86,7 +86,7 @@ export default function ContractDetailPage() {
       {/* Main Content - Split Panel Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel - Original Contract */}
-        <div className="w-1/2 border-r border-gray-200 flex flex-col bg-white">
+        <div className="w-[55%] border-r border-gray-200 flex flex-col bg-white">
           {/* Contract Actions Bar */}
           <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -122,7 +122,7 @@ export default function ContractDetailPage() {
         </div>
 
         {/* Right Panel - AI Decoder */}
-        <div className="w-1/2 overflow-hidden bg-gray-50">
+        <div className="w-[45%] overflow-hidden bg-gray-50">
           <DecoderPanel
             selectedClause={contract.getSelectedClause()}
             simplifiedText={contract.selectedClauseId
