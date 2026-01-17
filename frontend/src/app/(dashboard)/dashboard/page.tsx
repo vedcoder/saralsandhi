@@ -141,7 +141,18 @@ export default function DashboardPage() {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{contract.filename}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">{contract.filename}</p>
+                        {contract.is_owner ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-blue-50 text-blue-600 rounded">
+                            Owner
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-indigo-50 text-indigo-600 rounded">
+                            Shared
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-amber-600 font-medium">
                         {daysUntilExpiry !== null && daysUntilExpiry <= 7 ? (
                           <span className="text-red-600">Expires in {daysUntilExpiry} day{daysUntilExpiry !== 1 ? 's' : ''}</span>
@@ -221,7 +232,18 @@ export default function DashboardPage() {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{contract.filename}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">{contract.filename}</p>
+                        {contract.is_owner ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-blue-50 text-blue-600 rounded">
+                            Owner
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-indigo-50 text-indigo-600 rounded">
+                            Shared
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2 text-xs text-gray-500">
                         <span>{new Date(contract.created_at).toLocaleDateString()}</span>
                         {contract.category && (
