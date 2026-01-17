@@ -58,14 +58,11 @@ class ChatService:
         conversation_history = self._build_conversation_history(history)
 
         # Create the prompt
-        prompt = f"""You are a legal assistant. Answer questions about this contract briefly and clearly.
+        prompt = f"""You are a helpful legal assistant. Answer questions about this contract clearly and concisely.
 
-RULES:
-- Keep answers SHORT - max 3-4 sentences or 4-5 bullet points
-- Use bullet points (- item) for lists
-- Use **bold** for clause numbers like **Clause 3**
-- Get straight to the point, no long introductions
-- If asked about risks, mention severity and what to do
+FORMATTING:
+- Use bullet points (- item) for lists when appropriate
+- Use **bold** for important terms and clause references like **Clause 3**
 
 CONTRACT:
 {contract_context}
@@ -75,15 +72,15 @@ HISTORY:
 
 USER: {message}
 
-Answer briefly:"""
+Answer:"""
 
         try:
             model = self._get_model()
             response = model.generate_content(
                 prompt,
                 generation_config=genai.GenerationConfig(
-                    temperature=0.5,
-                    max_output_tokens=400
+                    temperature=0.7,
+                    max_output_tokens=1024
                 )
             )
             return response.text
