@@ -13,6 +13,7 @@ An AI-powered contract analysis and simplification platform that helps users und
 - **PDF Processing** — Upload and analyze contract PDFs directly
 - **AI Chat Assistant** — Ask questions about your contracts and get instant answers
 - **Two-Party Approval** — Add a second party to contracts for collaborative review and approval
+- **Contract Ownership** — Visual distinction between owned contracts and contracts shared with you
 - **Blockchain Verification** — Store contract hashes on Ethereum Sepolia for immutable proof
 - **Audit Trail** — Track all contract events including uploads, approvals, and blockchain submissions
 - **Auto-Detection** — Automatically detect contract category (employment, rental, NDA, etc.) and expiry dates
