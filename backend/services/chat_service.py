@@ -25,11 +25,13 @@ class ChatService:
     def _get_model(self):
         """Lazy initialization of the Gemini model."""
         if self._model is None:
-            api_key = os.getenv("GEMINI_API_KEY")
+            # Use GEMINI_CHAT_API_KEY if set, otherwise fall back to GEMINI_API_KEY
+            api_key = os.getenv("GEMINI_CHAT_API_KEY") or os.getenv("GEMINI_API_KEY")
             if not api_key:
-                raise ValueError("GEMINI_API_KEY environment variable not set")
+                raise ValueError("GEMINI_API_KEY or GEMINI_CHAT_API_KEY environment variable not set")
             genai.configure(api_key=api_key)
-            self._model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
+            # Use gemini-3-flash-preview for chat
+            self._model = genai.GenerativeModel("gemini-3-flash-preview")
         return self._model
 
     async def chat(

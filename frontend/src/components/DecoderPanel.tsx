@@ -74,7 +74,7 @@ export function DecoderPanel({
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-hidden flex flex-col">
         {activeTab === 'simplify' && (
           <SimplifyTab
             selectedClause={selectedClause}
@@ -87,19 +87,23 @@ export function DecoderPanel({
         )}
 
         {activeTab === 'overall' && (
-          <OverallRiskTab
-            allClauses={allClauses}
-            allRisks={allRisks}
-            riskSummary={riskSummary}
-          />
+          <div className="flex-1 overflow-y-auto">
+            <OverallRiskTab
+              allClauses={allClauses}
+              allRisks={allRisks}
+              riskSummary={riskSummary}
+            />
+          </div>
         )}
 
         {activeTab === 'risks' && (
-          <RisksTab
-            selectedClause={selectedClause}
-            risks={risks}
-            highRisks={highRisks}
-          />
+          <div className="flex-1 overflow-y-auto">
+            <RisksTab
+              selectedClause={selectedClause}
+              risks={risks}
+              highRisks={highRisks}
+            />
+          </div>
         )}
 
         {activeTab === 'chat' && (
@@ -157,9 +161,9 @@ function SimplifyTab({
   };
 
   return (
-    <div>
-      {/* Language Selector Header */}
-      <div className="flex items-center justify-between mb-4 sticky -top-6 bg-gray-50 py-2 -mx-6 px-6 z-10">
+    <div className="flex flex-col h-full -mt-4">
+      {/* Language Selector Header - Fixed at top */}
+      <div className="flex-shrink-0 flex items-center justify-between py-3 bg-gray-50 border-b border-gray-200 -mx-6 px-6 sticky top-0 z-10">
         <h3 className="text-sm font-medium text-gray-700">
           Simplified Contract ({languageLabel[selectedLanguage]})
         </h3>
@@ -169,8 +173,8 @@ function SimplifyTab({
         />
       </div>
 
-      {/* All Clauses */}
-      <div className="space-y-3">
+      {/* All Clauses - Scrollable */}
+      <div className="flex-1 overflow-y-auto pt-4 space-y-3">
         {allClauses.map((clause) => {
           const isSelected = selectedClause?.clause_id === clause.clause_id;
           const translatedText = getTranslation(clause.clause_id);
