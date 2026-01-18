@@ -13,10 +13,114 @@ interface ApprovalPanelProps {
   onStatusChange: (status: ContractApprovalStatus) => void;
 }
 
-// Blockchain verification loading modal
-function BlockchainVerificationModal({ isOpen }: { isOpen: boolean }) {
+// Blockchain verification modal - shows loading or success state
+interface BlockchainVerificationModalProps {
+  isOpen: boolean;
+  status: 'loading' | 'success';
+  txHash?: string | null;
+  onClose?: () => void;
+}
+
+function BlockchainVerificationModal({ isOpen, status, txHash, onClose }: BlockchainVerificationModalProps) {
   if (!isOpen) return null;
 
+  // Success state
+  if (status === 'success') {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        {/* Backdrop */}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
+        {/* Modal */}
+        <div className="relative bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 text-center">
+          {/* Success animation */}
+          <div className="mb-6">
+            <div className="relative w-24 h-24 mx-auto">
+              {/* Green circle background */}
+              <div className="absolute inset-0 bg-green-100 rounded-full animate-[pulse_2s_ease-in-out_infinite]" />
+              {/* Green checkmark */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
+                  <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Text content */}
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Contract Secured on Blockchain
+          </h3>
+          <p className="text-gray-600 mb-6">
+            Your contract has been successfully verified and stored on the Ethereum Sepolia blockchain.
+          </p>
+
+          {/* Success details */}
+          <div className="space-y-3 text-left bg-green-50 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-sm text-gray-700">Both parties approved</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-sm text-gray-700">Document hash generated</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-sm text-gray-700">Submitted to blockchain</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <span className="text-sm text-gray-700 font-medium">Confirmed on-chain</span>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-col gap-3">
+            {txHash && (
+              <a
+                href={`https://sepolia.etherscan.io/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                View on Etherscan
+              </a>
+            )}
+            <button
+              onClick={onClose}
+              className="px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -96,7 +200,11 @@ export function ApprovalPanel({ contractId, approvalStatus, onStatusChange }: Ap
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
-  const [isBlockchainVerifying, setIsBlockchainVerifying] = useState(false);
+  const [blockchainModalState, setBlockchainModalState] = useState<{
+    isOpen: boolean;
+    status: 'loading' | 'success';
+    txHash: string | null;
+  }>({ isOpen: false, status: 'loading', txHash: null });
   const [isRemoving, setIsRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,18 +230,32 @@ export function ApprovalPanel({ contractId, approvalStatus, onStatusChange }: Ap
     // Show blockchain modal if this will finalize the contract
     const showBlockchainModal = willTriggerBlockchain(approved);
     if (showBlockchainModal) {
-      setIsBlockchainVerifying(true);
+      setBlockchainModalState({ isOpen: true, status: 'loading', txHash: null });
     }
 
     try {
       const newStatus = await approveContract(contractId, approved);
       onStatusChange(newStatus);
+
+      // If blockchain was triggered, show success state with txHash
+      if (showBlockchainModal) {
+        setBlockchainModalState({
+          isOpen: true,
+          status: 'success',
+          txHash: newStatus.blockchain_tx_hash || null,
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit approval');
+      // Close blockchain modal on error
+      setBlockchainModalState({ isOpen: false, status: 'loading', txHash: null });
     } finally {
       setIsApproving(false);
-      setIsBlockchainVerifying(false);
     }
+  };
+
+  const handleCloseBlockchainModal = () => {
+    setBlockchainModalState({ isOpen: false, status: 'loading', txHash: null });
   };
 
   const handleRemoveSecondParty = async () => {
@@ -180,7 +302,12 @@ export function ApprovalPanel({ contractId, approvalStatus, onStatusChange }: Ap
 
     return (
       <>
-      <BlockchainVerificationModal isOpen={isBlockchainVerifying} />
+      <BlockchainVerificationModal
+        isOpen={blockchainModalState.isOpen}
+        status={blockchainModalState.status}
+        txHash={blockchainModalState.txHash}
+        onClose={handleCloseBlockchainModal}
+      />
       <div className="flex items-center gap-3">
         {/* Second Party indicator - greyed out button style */}
         <div className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-500 bg-gray-100 border border-gray-200 rounded-lg cursor-default">

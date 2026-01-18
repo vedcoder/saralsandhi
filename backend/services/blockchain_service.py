@@ -141,22 +141,29 @@ class BlockchainService:
         Returns:
             Tuple of (success, transaction_hash, error_message)
         """
+        logger.info(f"🔗 [BLOCKCHAIN] Starting hash storage for contract: {contract_id}")
+        logger.info(f"🔗 [BLOCKCHAIN] Document hash: {document_hash[:18]}...")
+
         if not self.is_enabled:
-            logger.warning("Blockchain integration is disabled")
+            logger.warning("🔗 [BLOCKCHAIN] Integration is disabled - skipping on-chain storage")
             return False, None, "Blockchain integration is disabled"
 
         try:
+            logger.info("🔗 [BLOCKCHAIN] Connecting to Ethereum Sepolia...")
             web3 = self._get_web3()
             account = self._get_account()
             contract = self._get_contract()
+            logger.info(f"🔗 [BLOCKCHAIN] Connected! Wallet: {account.address}")
 
             # Convert inputs to bytes32
             contract_id_bytes = self._uuid_to_bytes32(contract_id)
             hash_bytes = Web3.to_bytes(hexstr=document_hash)
 
             # Build transaction
+            logger.info("🔗 [BLOCKCHAIN] Building transaction...")
             nonce = web3.eth.get_transaction_count(account.address)
             gas_price = web3.eth.gas_price
+            logger.info(f"🔗 [BLOCKCHAIN] Nonce: {nonce}, Gas Price: {gas_price} wei")
 
             tx = contract.functions.storeHash(
                 contract_id_bytes,
@@ -170,10 +177,15 @@ class BlockchainService:
             })
 
             # Sign and send transaction
+            logger.info("🔗 [BLOCKCHAIN] Signing transaction...")
             signed_tx = web3.eth.account.sign_transaction(tx, account.key)
+            logger.info("🔗 [BLOCKCHAIN] Sending transaction to network...")
             tx_hash = web3.eth.send_raw_transaction(signed_tx.raw_transaction)
+            tx_hash_hex = "0x" + tx_hash.hex()
+            logger.info(f"🔗 [BLOCKCHAIN] Transaction sent! TX Hash: {tx_hash_hex}")
 
             # Wait for transaction receipt with retries
+            logger.info("🔗 [BLOCKCHAIN] Waiting for transaction confirmation...")
             for attempt in range(self.settings.BLOCKCHAIN_MAX_RETRIES):
                 try:
                     receipt = web3.eth.wait_for_transaction_receipt(
@@ -181,28 +193,32 @@ class BlockchainService:
                         timeout=60
                     )
                     if receipt['status'] == 1:
-                        tx_hash_hex = "0x" + tx_hash.hex()
-                        logger.info(f"Hash stored on-chain. TX: {tx_hash_hex}")
+                        logger.info(f"✅ [BLOCKCHAIN] Transaction confirmed! Block: {receipt['blockNumber']}")
+                        logger.info(f"✅ [BLOCKCHAIN] Gas used: {receipt['gasUsed']}")
+                        logger.info(f"✅ [BLOCKCHAIN] Etherscan: https://sepolia.etherscan.io/tx/{tx_hash_hex}")
                         return True, tx_hash_hex, None
                     else:
+                        logger.error("❌ [BLOCKCHAIN] Transaction reverted on-chain")
                         return False, None, "Transaction reverted"
                 except TransactionNotFound:
+                    logger.info(f"🔗 [BLOCKCHAIN] Waiting for confirmation (attempt {attempt + 1}/{self.settings.BLOCKCHAIN_MAX_RETRIES})...")
                     if attempt < self.settings.BLOCKCHAIN_MAX_RETRIES - 1:
                         await asyncio.sleep(self.settings.BLOCKCHAIN_RETRY_DELAY)
                     continue
 
+            logger.error("❌ [BLOCKCHAIN] Transaction not confirmed in time")
             return False, None, "Transaction not confirmed in time"
 
         except ContractLogicError as e:
             error_msg = str(e)
             if "already stored" in error_msg.lower():
                 # Hash already stored - this is OK
-                logger.info(f"Hash already stored for contract {contract_id}")
+                logger.info(f"🔗 [BLOCKCHAIN] Hash already stored for contract {contract_id}")
                 return True, None, "Hash already stored"
-            logger.error(f"Contract error: {error_msg}")
+            logger.error(f"❌ [BLOCKCHAIN] Contract error: {error_msg}")
             return False, None, error_msg
         except Exception as e:
-            logger.error(f"Blockchain error: {str(e)}")
+            logger.error(f"❌ [BLOCKCHAIN] Error: {str(e)}", exc_info=True)
             return False, None, str(e)
 
     async def verify_hash_on_chain(

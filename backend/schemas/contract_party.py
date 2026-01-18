@@ -43,3 +43,4 @@ class ContractApprovalStatus(BaseModel):
     overall_status: str  # "pending", "approved", "rejected", "awaiting_second_party"
     is_owner: bool  # Whether current user is first party
     can_approve: bool  # Whether current user can approve
+    blockchain_tx_hash: Optional[str] = None  # Transaction hash after blockchain submission

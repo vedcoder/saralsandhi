@@ -87,6 +87,7 @@ export interface ContractApprovalStatus {
   overall_status: string;
   is_owner: boolean;
   can_approve: boolean;
+  blockchain_tx_hash: string | null;
 }
 
 export interface ContractListResponse {

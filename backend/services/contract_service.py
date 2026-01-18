@@ -554,6 +554,12 @@ class ContractService:
                 detail="Not authorized to view this contract"
             )
 
+        # Get contract for blockchain info
+        contract_result = await db.execute(
+            select(Contract).where(Contract.id == contract_id)
+        )
+        contract = contract_result.scalar_one_or_none()
+
         # Get all parties with user info
         result = await db.execute(
             select(ContractParty)
@@ -601,6 +607,7 @@ class ContractService:
             overall_status=overall_status,
             is_owner=is_owner,
             can_approve=can_approve,
+            blockchain_tx_hash=contract.blockchain_tx_hash if contract else None,
         )
 
     async def set_approval(
@@ -819,12 +826,15 @@ class ContractService:
         Returns:
             Tuple of (document_hash, transaction_hash)
         """
+        logger.info(f"🔐 [FINALIZE] Starting blockchain hash generation for contract: {contract.id}")
+
         # Build metadata for hashing
         metadata = {
             "filename": contract.filename,
             "created_at": contract.created_at.isoformat(),
             "user_id": str(contract.user_id),
         }
+        logger.info(f"🔐 [FINALIZE] Metadata: {metadata}")
 
         # Generate deterministic hash
         document_hash = blockchain_service.generate_document_hash(
@@ -832,18 +842,23 @@ class ContractService:
             contract.id,
             metadata
         )
+        logger.info(f"🔐 [FINALIZE] Generated document hash: {document_hash[:18]}...")
 
         # Attempt to store on blockchain
         if blockchain_service.is_enabled:
+            logger.info("🔐 [FINALIZE] Blockchain is enabled, storing hash on-chain...")
             success, tx_hash, error = await blockchain_service.store_hash_on_chain(
                 contract.id,
                 document_hash
             )
             if success:
+                logger.info(f"✅ [FINALIZE] Successfully stored on blockchain! TX: {tx_hash}")
                 return document_hash, tx_hash
             else:
                 # Log error but continue with just the hash
-                logger.warning(f"Blockchain storage failed: {error}")
+                logger.warning(f"⚠️ [FINALIZE] Blockchain storage failed: {error}")
+        else:
+            logger.info("🔐 [FINALIZE] Blockchain is disabled, storing hash locally only")
 
         return document_hash, None
 
