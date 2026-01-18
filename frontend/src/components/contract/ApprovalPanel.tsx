@@ -215,8 +215,8 @@ export function ApprovalPanel({ contractId, approvalStatus, onStatusChange }: Ap
     if (!approved) return false;
     if (!approvalStatus.second_party) return false;
 
-    const isFirstParty = approvalStatus.first_party?.user_id !== approvalStatus.second_party?.user_id;
-    const otherPartyStatus = isFirstParty
+    // Use is_owner to determine if current user is first party
+    const otherPartyStatus = approvalStatus.is_owner
       ? approvalStatus.second_party?.approval_status
       : approvalStatus.first_party?.approval_status;
 
@@ -229,16 +229,30 @@ export function ApprovalPanel({ contractId, approvalStatus, onStatusChange }: Ap
 
     // Show blockchain modal if this will finalize the contract
     const showBlockchainModal = willTriggerBlockchain(approved);
+    console.log('[ApprovalPanel] Approval triggered:', {
+      approved,
+      showBlockchainModal,
+      is_owner: approvalStatus.is_owner,
+      first_party_status: approvalStatus.first_party?.approval_status,
+      second_party_status: approvalStatus.second_party?.approval_status,
+    });
+
     if (showBlockchainModal) {
+      console.log('[ApprovalPanel] Showing blockchain loading modal');
       setBlockchainModalState({ isOpen: true, status: 'loading', txHash: null });
     }
 
     try {
       const newStatus = await approveContract(contractId, approved);
+      console.log('[ApprovalPanel] Approval response:', {
+        overall_status: newStatus.overall_status,
+        blockchain_tx_hash: newStatus.blockchain_tx_hash,
+      });
       onStatusChange(newStatus);
 
       // If blockchain was triggered, show success state with txHash
       if (showBlockchainModal) {
+        console.log('[ApprovalPanel] Showing blockchain success modal, txHash:', newStatus.blockchain_tx_hash);
         setBlockchainModalState({
           isOpen: true,
           status: 'success',
@@ -246,6 +260,7 @@ export function ApprovalPanel({ contractId, approvalStatus, onStatusChange }: Ap
         });
       }
     } catch (err) {
+      console.error('[ApprovalPanel] Approval error:', err);
       setError(err instanceof Error ? err.message : 'Failed to submit approval');
       // Close blockchain modal on error
       setBlockchainModalState({ isOpen: false, status: 'loading', txHash: null });
